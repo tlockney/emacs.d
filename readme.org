@@ -1,0 +1,404 @@
+#+TITLE My literate Emacs config
+#+AUTHOR Thomas Lockney
+#+EMAIL thomas@lockney.net
+#+OPTIONS: toc:3 num:nil
+#+STYLE: <link rel="stylesheet" type="text/css" href="http://thomasf.github.io/solarized-css/solarized-light.min.css" />
+
+* Set up basic Emacs builtins and such
+
+** Who am I?
+#+begin_src emacs-lisp
+  (setq user-full-name "Thomas Lockney"
+        user-mail-address "thomas@lockney.net")
+#+end_src
+
+** Environment
+
+Need to add a few things to the default =PATH= and =exec-path= values.
+#+begin_src emacs-lisp
+  (setenv "PATH" (concat "/usr/local/bin" ":" "/Users/tlockn/bin" ":" (getenv "PATH")))
+  (add-to-list 'exec-path "/usr/local/bin")
+  (add-to-list 'exec-path "/Users/tlockn/bin")
+#+end_src
+
+** Clean up the UI
+#+begin_src emacs-lisp
+  (defun tl:clean-gui ()
+    "Turns off unnecessary UI elements"
+    (dolist (mode '(menu-bar-mode tool-bar-mode scroll-bar-mode))
+      (when (fboundp mode) (funcall mode -1))))
+  (tl:clean-gui)
+  (add-hook 'before-make-frame-hook 'tl:clean-gui)
+  (setq default-major-mode 'text-mode
+        inhibit-splash-screen t
+        inhibit-startup-message t
+        inhibit-startup-echo-area-message t
+        initial-scratch-message nil
+        initial-major-mode 'org-mode)
+  (defalias 'yes-or-no-p 'y-or-n-p)
+#+end_src
+
+** Make the modeline a bit more useful
+#+begin_src emacs-lisp
+  (display-time-mode t)
+  (setq column-number-mode t
+        size-indication-mode t)
+#+end_src
+
+** Turn on line number and highlight the current line
+#+begin_src emacs-lisp
+  (require 'linum)
+  (global-linum-mode 1)
+  (setq linum-format "  %d ")
+  (global-hl-line-mode t)
+#+end_src
+
+** Display full path in frame title
+#+begin_src emacs-lisp
+  (setq frame-title-format
+        '((:eval (if (buffer-file-name)
+                     (abbreviate-file-name (buffer-file-name))
+                   "%b"))))
+#+end_src
+
+** Toggle fullscreen mode
+#+begin_src emacs-lisp
+  (defun toggle-fullscreen ()
+    "Toggle full screen"
+    (interactive)
+    (set-frame-parameter
+     nil 'fullscreen
+     (when (not (frame-parameter nil 'fullscreen)) 'fullboth)))
+#+end_src
+
+** Turn on global syntax highlighting
+#+begin_src emacs-lisp
+  (global-font-lock-mode t)
+#+end_src
+
+** Ido-mode
+#+begin_src emacs-lisp
+  (require 'ido)
+  (ido-mode t)
+  (ido-everywhere t)
+  (setq ido-default-file-method 'selected-window
+        ido-default-buffer-method 'selected-window
+        ido-enable-prefix nil
+        ido-enable-flex-matching t
+        ido-create-new-buffer 'always
+        ido-use-filename-at-point nil
+        ido-max-prospects 10
+        ido-everywhere t
+        ido-show-dot-dor-dired nil)
+#+end_src
+
+** Uniquify
+#+begin_src emacs-lisp
+  (require 'uniquify)
+  (setq uniquify-buffer-name-style 'post-forward
+        uniquify-seperator ":")
+#+end_src
+
+** Show recently opened files
+#+begin_src emacs-lisp
+  (require 'recentf)
+  (recentf-mode t)
+  (setq recentf-max-saved-items 50)
+  (global-set-key (kbd "<f7>") 'recentf-open-files)
+  (savehist-mode t)
+  (setq history-length 1000)
+#+end_src
+
+** Enable winner-mode to allow undoing window config changes
+#+begin_src emacs-lisp
+  (winner-mode t)
+#+end_src
+
+** Server
+#+begin_src emacs-lisp
+  (require 'server)
+  (unless (server-running-p) (server-start))
+#+end_src
+
+** Enable desktop mode
+#+begin_src emacs-lisp
+  (desktop-save-mode t)
+  (setq desktop-path '("~")
+        desktop-dirname "~"
+        desktop-base-file-name ".emacs-desktop")
+#+end_src
+*** Ignore these modes for desktop saves
+#+begin_src emacs-lisp
+  (add-to-list 'desktop-modes-not-to-save 'dired-mode)
+  (add-to-list 'desktop-modes-not-to-save 'Info-mode)
+  (add-to-list 'desktop-modes-not-to-save 'comint-mode)
+  (add-to-list 'desktop-modes-not-to-save 'doc-view-mode)
+  (add-to-list 'desktop-modes-not-to-save 'info-lookup-mode)
+  (add-to-list 'desktop-modes-not-to-save 'fundamental-mode)
+#+end_src
+*** Cleanup old desktop saves
+#+begin_src emacs-lisp
+  (add-hook 'desktop-after-read-hook
+            '(lambda ()
+               (setq desktop-dirname-tmp desktop-dirname)
+               (desktop-remove)
+               (setq desktop-dirname desktop-dirname-tmp)))
+  (add-hook 'auto-save-hook (lambda () (desktop-save-in-desktop-dir)))
+#+end_src
+*** Prevent stale desktop locks
+#+begin_src emacs-lisp
+  (defun emacs-process-p (pid)
+    "If pid is the process ID of an emacs process, return t, else nil.
+  Also returns nil if pid is nil."
+    (when pid
+      (let ((attributes (process-attributes pid)) (cmd))
+        (dolist (attr attributes)
+          (if (string= "comm" (car attr))
+              (setq cmd (cdr attr))))
+        (if (and cmd (or (string= "emacs" cmd) (string= "emacs.exe" cmd))) t))))
+  
+  (defadvice desktop-owner (after pry-from-cold-dead-hands activate)
+    "Don't allow dead emacsen to own the desktop file."
+    (when (not (emacs-process-p ad-return-value))
+      (setq ad-return-value nil)))
+#+end_src
+** Save point between sessions
+#+begin_src emacs-lisp
+    (require 'saveplace)
+    (setq-default save-place t)
+    (setq save-place-file (expand-file-name ".places" user-emacs-directory))
+#+end_src
+
+** Clean up old buffers
+#+begin_src emacs-lisp
+  (require 'midnight)
+#+end_src
+
+** Clean up the handling of backups a bit
+#+begin_src emacs-lisp
+    (setq version-control nil
+          backup-directory-alist `((".*" . ,temporary-file-directory))
+          auto-save-file-name-transforms `((".*" ,temporary-file-directory t))
+          create-lockfiles nil)
+#+end_src
+** Use soft tabs
+#+begin_src emacs-lisp
+  (setq-default indent-tabs-mode nil)
+#+end_src
+** Mouse support
+#+begin_src emacs-lisp
+  (require 'mouse)
+  (xterm-mouse-mode t)
+  (mouse-wheel-mode t)
+#+end_src
+** Tramp setup
+#+begin_src emacs-lisp
+  (require 'tramp)
+    (setq tramp-default-method "ssh")
+    (add-to-list 'tramp-default-proxies-alist
+                 '(nil "\\`root\\'" "/ssh:%h:"))
+    (add-to-list 'tramp-default-proxies-alist
+                 '((regexp-quote (system-name)) nil nil))
+#+end_src
+** Make OSX treat sub-shells as login shells
+#+begin_src emacs-lisp
+    (cond
+     ((eq window-system 'ns) ; macosx
+      ;; Invoke login shells, so that .profile or .bash_profile is read
+      (setq shell-command-switch "-lc")))
+#+end_src
+
+* Packages
+** Set up additional repos
+First set up a handful of additional repos:
+#+begin_src emacs-lisp
+  (load "package")
+  (add-to-list 'package-archives
+               '("marmalade" . "http://marmalade-repo.org/packages/"))
+  (add-to-list 'package-archives
+               '("melpa" . "http://melpa.milkbox.net/packages/") t)
+  (setq package-archive-enable-alist '(("melpa" deft magit)))
+  (package-initialize)
+#+end_src
+
+Now, install the =use-package= package to make package management a bit cleaner:
+#+begin_src emacs-lisp
+  (unless (file-exists-p package-user-dir)
+    (package-refresh-contents))
+  (unless (package-installed-p 'use-package)
+    (package-install 'use-package))
+  (require 'use-package)
+#+end_src
+** Install solarized-light theme
+#+begin_src emacs-lisp
+  (use-package solarized-theme
+    :ensure t
+    :config
+    (progn (if window-system (load-theme 'solarized-light t))))
+#+end_src
+** Install wombat theme
+#+begin_src emacs-lisp
+  (use-package color-theme-wombat
+    :ensure t
+    :config
+    (progn (unless window-system (load-theme 'wombat t))))
+#+end_src
+  
+#+end_src
+** Install Scala-mode2
+#+begin_src emacs-lisp
+  (use-package scala-mode2
+    :ensure t
+    :mode (("\\.scala\\'" . scala-mode)
+           ("\\.sbt\\'" . scala-mode))
+    :config
+    (progn
+      (add-hook 'scala-mode-hook '(lambda ()
+                                    (c-subword-mode t)))
+      (setq scala-indent:align-paramters t
+            scala-indent:align-forms t)))
+#+end_src
+** Install Python-mode
+#+begin_src emacs-lisp
+  (use-package python-mode
+    :ensure t
+    :config
+    (progn
+      (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
+      (add-to-list 'interpreter-mode-alist '("python" . python-mode))))
+#+end_src
+** Install IPython support
+#+begin_src emacs-lisp
+  (use-package ipython
+    :ensure t)
+   #+end_src
+** Install Deft
+#+begin_src emacs-lisp
+  (use-package deft
+    :ensure t
+    :config
+    (progn
+      (setq deft-directory "~/Dropbox/org")
+      (setq deft-extension "org")
+      (setq deft-text-mode 'org-mode)
+      (setq deft-use-filename-as-title t)
+      (global-set-key [f8] 'deft)))
+#+end_src
+** Install whitespace mode
+#+begin_src emacs-lisp
+  # (use-package whitespace
+  #   :bind (("C-c t w" . whitespace-mode))
+  #   :init
+  #   (dolist (hook '(prog-mode-hook text-mode-hook conf-mode-hook))
+  #     (add-hook hook #'whitespace-mode))
+  #   :config (setq whitespace-line-column nil)
+  #   :diminish whitespace-mode)
+#+end_src
+** Install ibuffer-vc
+This mode groups buffers in 
+#+begin_src emacs-lisp
+  (use-package ibuffer-vc
+    :ensure t)
+#+end_src
+** Install ido-vertical-mode
+This helps to make ido expansions a bit more useful.
+#+begin_src emacs-lisp
+  # (use-package ido-vertical-mode
+  #   :ensure t
+  #   :config (ido-vertical-mode 1))
+#+end_src
+** Install ido-ubiquitous
+Use ido everywhere we possibly can.
+#+begin_src emacs-lisp
+
+#+end_src
+** Install smex
+#+begin_src emacs-lisp
+  (use-package smex
+    :ensure t
+    :bind (("M-x" . smex)))
+#+end_src
+** Install browse-kill-ring
+#+begin_src emacs-lisp
+  (use-package browse-kill-ring
+    :ensure t
+    :bind (("M-y" . browse-kill-ring)))
+#+end_src
+** Install projectile
+#+begin_src emacs-lisp
+  (use-package projectile
+    :ensure t)
+#+end_src
+
+* Org-mode configuration  
+** Org-babel setup
+#+begin_src emacs-lisp
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '(
+     (awk . t)
+     (C . t)
+     (emacs-lisp . t)
+     (java . t)
+     (ocaml . t)
+     (python . t)
+     (R . t)
+     (ruby . t)
+     (scala . t)
+     (sh . t)
+     (sql . t)
+     ))
+  (setq org-src-fontify-natively t)
+#+end_src
+
+** Set folder and file locations
+#+begin_src emacs-lisp
+  (setq org-directory "~/Dropbox/org"
+        org-default-notes-file (concat org-directory "/notes.org")
+        org-agenda-files `(,org-directory))
+#+end_src
+   
+** Make it a bit more readable
+#+begin_src emacs-lisp
+  (setq org-hide-emphasis-markers t
+        org-hide-leading-stars t
+        org-edit-timestamps-down-means-later t)
+#+end_src
+
+** Set up Capture
+#+begin_src emacs-lisp
+  (require 'org-capture)
+  (setq org-capture-templates
+        `(
+          ("j" "Journal Entry" entry (file+datetree "journal.org") "** %U - %^{Heading}" :empty-lines 1)
+          ("l" "Logbook entry" entry (file+datetree "logbook-work.org") "** %U - %^{Activity}  :LOG:")
+          ("t" "TODO Entry" entry (file+headline "todo.org" "Capture") (file "~/Dropbox/org/templates/todo.org.txt") :empty-lines-before 1)
+          )
+        )
+  (global-set-key (kbd "C-c c") 'org-capture)
+#+end_src
+** Enable org-mode mouse support
+#+begin_src emacs-lisp
+  (require 'org-mouse)
+#+end_src
+** org-abbrev and skeletons
+#+begin_src emacs-lisp
+  (add-hook 'org-mode-hook (lambda () (abbrev-mode 1)))
+  
+  (define-skeleton skel-org-block-elisp
+    "Insert an emacs-lisp block"
+    ""
+    "#+begin_src emacs-lisp\n"
+    _ - \n
+    "#+end_src\n")
+  (define-abbrev org-mode-abbrev-table "selisp" "" 'skel-org-block-elisp)
+  
+  (define-skeleton skel-header-block
+    "Creates my default header"
+    ""
+    "#+TITLE: " str "\n"
+    "#+AUTHOR: Thomas Lockney\n"
+    "#+EMAIL: thomas@lockney.net\n"
+    "#+OPTIONS: toc:3 num:nil\n")
+  (define-abbrev org-mode-abbrev-table "sheader" "" 'skel-header-block)
+#+end_src
