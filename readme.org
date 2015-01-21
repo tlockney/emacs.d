@@ -22,6 +22,7 @@ Need to add a few things to the default =PATH= and =exec-path= values.
 #+end_src
 
 ** Clean up the UI
+Turn off things we don't need.
 #+begin_src emacs-lisp
   (defun tl:clean-gui ()
     "Turns off unnecessary UI elements"
@@ -29,13 +30,52 @@ Need to add a few things to the default =PATH= and =exec-path= values.
       (when (fboundp mode) (funcall mode -1))))
   (tl:clean-gui)
   (add-hook 'before-make-frame-hook 'tl:clean-gui)
-  (setq default-major-mode 'text-mode
-        inhibit-splash-screen t
-        inhibit-startup-message t
-        inhibit-startup-echo-area-message t
-        initial-scratch-message nil
-        initial-major-mode 'org-mode)
-  (defalias 'yes-or-no-p 'y-or-n-p)
+#+end_src
+
+Avoid annoying bits of UI fluff
+#+begin_src emacs-lisp
+    (setq default-major-mode 'text-mode
+          inhibit-splash-screen t
+          inhibit-startup-message t
+          inhibit-startup-echo-area-message t
+          initial-scratch-message nil
+          initial-major-mode 'org-mode
+          confirm-nonexistent-file-or-buffer nil
+          kill-buffer-query-functions (remq 'process-kill-buffer-query-function
+                                            kill-buffer-query-functions))
+    (fset 'yes-or-no-p 'y-or-n-p)
+#+end_src
+
+Don't display tooltips in a separate frame
+#+begin_src emacs-lisp
+  (tooltip-mode -1)
+  (setq tooltip-use-echo-area t)
+#+end_src
+** A few useful global keybindings
+#+begin_src emacs-lisp
+  (setq mac-command-modifier 'super)
+#+end_src
+
+** Make buffer navigation simple
+#+begin_src emacs-lisp
+  (global-set-key (kbd "M-]") 'next-buffer)
+  (global-set-key (kbd "M-[") 'previous-buffer)
+  
+  (defun kill-current-buffer ()
+    "Kills the current buffer"
+    (interactive)
+    (kill-buffer (buffer-name)))
+  (global-set-key (kbd "C-x C-k") 'kill-current-buffer)
+  
+  (defun nuke-all-buffers ()
+    "Kill all buffers, leaving *scratch* only"
+    (interactive)
+    (mapcar (lambda (x) (kill-buffer x))
+            (buffer-list))
+    (delete-other-windows))
+;  (global-set-key (kbd "C-x C-S-k") 'nuke-all-buffers)
+  
+  (global-set-key (kbd "C-c r") 'revert-buffer)
 #+end_src
 
 ** Make the modeline a bit more useful
@@ -76,6 +116,15 @@ Need to add a few things to the default =PATH= and =exec-path= values.
   (global-font-lock-mode t)
 #+end_src
 
+** Show recently opened files
+#+begin_src emacs-lisp
+  (require 'recentf)
+  (recentf-mode t)
+  (setq recentf-max-saved-items 50)
+  (savehist-mode t)
+  (setq history-length 1000)
+#+end_src
+
 ** Ido-mode
 #+begin_src emacs-lisp
   (require 'ido)
@@ -97,16 +146,6 @@ Need to add a few things to the default =PATH= and =exec-path= values.
   (require 'uniquify)
   (setq uniquify-buffer-name-style 'post-forward
         uniquify-seperator ":")
-#+end_src
-
-** Show recently opened files
-#+begin_src emacs-lisp
-  (require 'recentf)
-  (recentf-mode t)
-  (setq recentf-max-saved-items 50)
-  (global-set-key (kbd "<f7>") 'recentf-open-files)
-  (savehist-mode t)
-  (setq history-length 1000)
 #+end_src
 
 ** Enable winner-mode to allow undoing window config changes
@@ -207,6 +246,22 @@ Need to add a few things to the default =PATH= and =exec-path= values.
       ;; Invoke login shells, so that .profile or .bash_profile is read
       (setq shell-command-switch "-lc")))
 #+end_src
+** Enable easy commenting of lines
+
+Make commenting in the various programming modes (or any mode that's aware of "comments") as simple as possible.
+#+begin_src emacs-lisp
+  (defun comment-or-uncomment-region-or-line ()
+      "Comments or uncomments the region or the current line if there's no active region."
+      (interactive)
+      (let (beg end)
+          (if (region-active-p)
+              (setq beg (region-beginning) end (region-end))
+              (setq beg (line-beginning-position) end (line-end-position)))
+          (comment-or-uncomment-region beg end)))
+  
+  (global-set-key (kbd "M-/") 'comment-or-uncomment-region-or-line)
+  (global-set-key (kbd "M-\\") 'dabbrev-expand)
+#+end_src
 
 * Packages
 ** Set up additional repos
@@ -245,10 +300,40 @@ Now, install the =use-package= package to make package management a bit cleaner:
 #+end_src
   
 #+end_src
+** Install let-alist
+This adds a missing package needed for flycheck
+#+begin_src emacs-lisp
+  (use-package let-alist
+    :ensure t)
+#+end_src
+
+** Install flycheck
+Need better syntax highlighting.
+#+begin_src emacs-lisp
+  (use-package flycheck
+    :ensure t
+    :bind (("C-c l e" . list-flycheck-errors)
+           ("C-c T f" . flycheck-mode))
+    :init (global-flycheck-mode)
+    :config
+    (progn
+      (setq flycheck-completion-system 'ido)
+      (set-face-attribute 'flycheck-error-list-checker-name nil :inherit 'italic))
+    :diminish flycheck-mode)
+#+end_src
+** Use popups for Flycheck
+#+begin_src emacs-lisp
+  (use-package flycheck-pos-tip
+    :ensure t
+    :defer t
+    :init
+    (setq flycheck-display-errors-function #'flycheck-pos-tip-error-messages))
+#+end_src
+
 ** Install Scala-mode2
 #+begin_src emacs-lisp
   (use-package scala-mode2
-    :ensure t
+    :ensure
     :mode (("\\.scala\\'" . scala-mode)
            ("\\.sbt\\'" . scala-mode))
     :config
@@ -272,7 +357,7 @@ Now, install the =use-package= package to make package management a bit cleaner:
   (use-package ipython
     :ensure t)
    #+end_src
-** Install Deft
+** Install Deftx
 #+begin_src emacs-lisp
   (use-package deft
     :ensure t
@@ -303,14 +388,15 @@ This mode groups buffers in
 ** Install ido-vertical-mode
 This helps to make ido expansions a bit more useful.
 #+begin_src emacs-lisp
-  # (use-package ido-vertical-mode
-  #   :ensure t
-  #   :config (ido-vertical-mode 1))
+  (use-package ido-vertical-mode
+    :ensure t
+    :config (ido-vertical-mode 1))
 #+end_src
 ** Install ido-ubiquitous
 Use ido everywhere we possibly can.
 #+begin_src emacs-lisp
-
+  (use-package ido-ubiquitous
+    :ensure t)
 #+end_src
 ** Install smex
 #+begin_src emacs-lisp
@@ -327,7 +413,49 @@ Use ido everywhere we possibly can.
 ** Install projectile
 #+begin_src emacs-lisp
   (use-package projectile
+    :ensure t
+    :init (projectile-global-mode))
+#+end_src
+** Install rust mode
+#+begin_src emacs-lisp
+  (use-package rust-mode
     :ensure t)
+#+end_src
+** Install ggtags
+#+begin_src emacs-lisp
+    (use-package ggtags
+      :ensure t
+      :config
+      (progn
+        (add-hook 'prog-mode-hook
+                  '(lambda ()
+                     (when (derived-mode-p 'rust-mode)
+                       (ggtags-mode 1))))))
+#+end_src
+** Install flx and flx-ido
+#+begin_src emacs-lisp
+  (use-package flx-ido
+    :ensure t
+    :init (flx-ido-mode 1)
+    :config
+    (progn
+      (setq ido-enable-flex-matching t
+            ido-use-faces nil)))
+#+end_src
+** Install markdown mode
+#+begin_src emacs-lisp
+  (use-package markdown-mode
+    :ensure t
+    :mode (("\\.markdown\\'" . gfm-mode)
+           ("\\.md\\'" . gfm-mode)
+           ("\\.mo\\'" . gfm-mode) ; use github flavored markdown for .mo files
+           ("\\README\\.md\\'" . gfm-mode)))
+#+end_src
+** Install powerline
+#+begin_src emacs-lisp
+  (use-package powerline
+    :ensure t
+    :init (powerline-default-theme))
 #+end_src
 
 * Org-mode configuration  
