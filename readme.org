@@ -378,13 +378,13 @@ Need better syntax highlighting.
 #+end_src
 ** Install whitespace mode
 #+begin_src emacs-lisp
-  # (use-package whitespace
-  #   :bind (("C-c t w" . whitespace-mode))
-  #   :init
-  #   (dolist (hook '(prog-mode-hook text-mode-hook conf-mode-hook))
-  #     (add-hook hook #'whitespace-mode))
-  #   :config (setq whitespace-line-column nil)
-  #   :diminish whitespace-mode)
+  ;; (use-package whitespace
+  ;;   :bind (("C-c t w" . whitespace-mode))
+  ;;   :init
+  ;;   (dolist (hook '(prog-mode-hook text-mode-hook conf-mode-hook))
+  ;;     (add-hook hook #'whitespace-mode))
+  ;;   :config (setq whitespace-line-column nil)
+  ;;   :diminish whitespace-mode)
 #+end_src
 ** Install ibuffer-vc
 This mode groups buffers in 
