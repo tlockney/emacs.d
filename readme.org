@@ -262,6 +262,13 @@ Make commenting in the various programming modes (or any mode that's aware of "c
   (global-set-key (kbd "M-/") 'comment-or-uncomment-region-or-line)
   (global-set-key (kbd "M-\\") 'dabbrev-expand)
 #+end_src
+** Easily open *scratch* buffer back up
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-x M-z")
+                  '(lambda ()
+                     (interactive)
+                     (switch-to-buffer "*scratch*")))
+#+end_src
 
 * Packages
 ** Set up additional repos
@@ -400,9 +407,10 @@ Use ido everywhere we possibly can.
 #+end_src
 ** Install smex
 #+begin_src emacs-lisp
-  (use-package smex
-    :ensure t
-    :bind (("M-x" . smex)))
+    (use-package smex
+      :ensure t
+      :bind (("C-t" . smex)
+             ("C-," . smex-describe-function)))
 #+end_src
 ** Install browse-kill-ring
 #+begin_src emacs-lisp
@@ -457,7 +465,14 @@ Use ido everywhere we possibly can.
     :ensure t
     :init (powerline-default-theme))
 #+end_src
-
+** Install ace-window
+Make window management a bit simpler.
+#+begin_src emacs-lisp
+  (use-package ace-window
+    :ensure t
+    :bind (("M-p" . ace-window)))
+  
+#+end_src
 * Org-mode configuration  
 ** Org-babel setup
 #+begin_src emacs-lisp
