@@ -264,7 +264,8 @@ Make commenting in the various programming modes (or any mode that's aware of "c
 #+end_src
 ** Easily open *scratch* buffer back up
 #+begin_src emacs-lisp
-  (global-set-key (kbd "C-x M-z")
+  (global-unset-key (kbd "C-x C-z"))
+  (global-set-key (kbd "C-x C-z")
                   '(lambda ()
                      (interactive)
                      (switch-to-buffer "*scratch*")))
@@ -544,4 +545,12 @@ Make window management a bit simpler.
     "#+EMAIL: thomas@lockney.net\n"
     "#+OPTIONS: toc:3 num:nil\n")
   (define-abbrev org-mode-abbrev-table "sheader" "" 'skel-header-block)
+#+end_src
+* Miscellaneous
+** Quick editing
+Set up registers for frequently accessed files. This allows quick access via =C-x r j = (jump-to-register).
+#+begin_src emacs-lisp
+  (set-register ?f (cons 'file "~/.config/fish/config.fish"))
+  (set-register ?e (cons 'file "~/.emacs.d/readme.org"))
+  (set-register ?o (cons 'file (concat org-directory "/notes.org")))
 #+end_src
