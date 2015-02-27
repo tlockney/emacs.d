@@ -548,7 +548,7 @@ Make window management a bit simpler.
 #+end_src
 * Miscellaneous
 ** Quick editing
-Set up registers for frequently accessed files. This allows quick access via =C-x r j = (jump-to-register).
+Set up registers for frequently accessed files. This allows quick access via =C-x r j= (jump-to-register).
 #+begin_src emacs-lisp
   (set-register ?f (cons 'file "~/.config/fish/config.fish"))
   (set-register ?e (cons 'file "~/.emacs.d/readme.org"))
