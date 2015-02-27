@@ -226,10 +226,12 @@ Don't display tooltips in a separate frame
 #+end_src
 ** Mouse support
 #+begin_src emacs-lisp
-  (require 'mouse)
-  (xterm-mouse-mode t)
-  (mouse-wheel-mode t)
+  (unless window-system
+    (require 'mouse)
+    (xterm-mouse-mode t)
+    (mouse-wheel-mode t))
 #+end_src
+
 ** Tramp setup
 #+begin_src emacs-lisp
   (require 'tramp)
@@ -276,8 +278,11 @@ Make commenting in the various programming modes (or any mode that's aware of "c
 First set up a handful of additional repos:
 #+begin_src emacs-lisp
   (load "package")
+  (setq package-check-signature nil)
   (add-to-list 'package-archives
-               '("marmalade" . "http://marmalade-repo.org/packages/"))
+               '("marmalade" . "http://marmalade-repo.org/packages/") t)
+  (add-to-list 'package-archives
+               '("gnu" . "http://elpa.gnu.org/packages") t)
   (add-to-list 'package-archives
                '("melpa" . "http://melpa.milkbox.net/packages/") t)
   (setq package-archive-enable-alist '(("melpa" deft magit)))
@@ -293,20 +298,20 @@ Now, install the =use-package= package to make package management a bit cleaner:
   (require 'use-package)
 #+end_src
 ** Install solarized-light theme
+   Default to using solarized light, unless we're running in a shell.
 #+begin_src emacs-lisp
   (use-package solarized-theme
-    :ensure t
-    :config
-    (progn (if window-system (load-theme 'solarized-light t))))
+    :ensure t)
+;    :config
+;    (progn (if window-system (load-theme 'solarized-light t))))
 #+end_src
 ** Install wombat theme
+Only load wombat if we're not running in GUI mode.
 #+begin_src emacs-lisp
   (use-package color-theme-wombat
     :ensure t
     :config
     (progn (unless window-system (load-theme 'wombat t))))
-#+end_src
-  
 #+end_src
 ** Install let-alist
 This adds a missing package needed for flycheck
@@ -335,7 +340,7 @@ Need better syntax highlighting.
     :ensure t
     :defer t
     :init
-    (setq flycheck-display-errors-function #'flycheck-pos-tip-error-messages))
+    (setq flycheck-display-errors-function 'flycheck-pos-tip-error-messages))
 #+end_src
 
 ** Install Scala-mode2
@@ -364,7 +369,7 @@ Need better syntax highlighting.
 #+begin_src emacs-lisp
   (use-package ipython
     :ensure t)
-   #+end_src
+#+end_src
 ** Install Deftx
 #+begin_src emacs-lisp
   (use-package deft
@@ -379,13 +384,13 @@ Need better syntax highlighting.
 #+end_src
 ** Install whitespace mode
 #+begin_src emacs-lisp
-  # (use-package whitespace
-  #   :bind (("C-c t w" . whitespace-mode))
-  #   :init
-  #   (dolist (hook '(prog-mode-hook text-mode-hook conf-mode-hook))
-  #     (add-hook hook #'whitespace-mode))
-  #   :config (setq whitespace-line-column nil)
-  #   :diminish whitespace-mode)
+  ; (use-package whitespace
+  ;   :bind (("C-c t w" . whitespace-mode))
+  ;   :init
+  ;   (dolist (hook '(prog-mode-hook text-mode-hook conf-mode-hook))
+  ;     (add-hook hook #'whitespace-mode))
+  ;   :config (setq whitespace-line-column nil)
+  ;   :diminish whitespace-mode)
 #+end_src
 ** Install ibuffer-vc
 This mode groups buffers in 
@@ -496,12 +501,18 @@ Make window management a bit simpler.
 #+end_src
 
 ** Set folder and file locations
+
 #+begin_src emacs-lisp
   (setq org-directory "~/Dropbox/org"
         org-default-notes-file (concat org-directory "/notes.org")
         org-agenda-files `(,org-directory))
 #+end_src
-   
+
+** Enable IDO completions
+#+begin_src emacs-lisp
+  (setq org-completion-use-ido t)
+#+end_src
+
 ** Make it a bit more readable
 #+begin_src emacs-lisp
   (setq org-hide-emphasis-markers t
@@ -514,16 +525,29 @@ Make window management a bit simpler.
   (require 'org-capture)
   (setq org-capture-templates
         `(
-          ("j" "Journal Entry" entry (file+datetree "journal.org") "** %U - %^{Heading}" :empty-lines 1)
-          ("l" "Logbook entry" entry (file+datetree "logbook-work.org") "** %U - %^{Activity}  :LOG:")
-          ("t" "TODO Entry" entry (file+headline "todo.org" "Capture") (file "~/Dropbox/org/templates/todo.org.txt") :empty-lines-before 1)
+          ("n" "Note" entry
+           (file+headline "notes.org" "Notes")
+           "** %?")
+          ("q" "Quick note" item
+           (file+headline "notes.org" "Quick Notes") "- %^{Note}" :immediate-finish :kill-buffer)
+          ("j" "Journal Entry" entry
+           (file+datetree "journal.org")
+           "** %U - %^{Heading}
+  %?" :empty-lines 1)
+          ("l" "Logbook entry" entry
+           (file+datetree "logbook-work.org")
+           "** %U - %^{Activity}  :LOG:")
+          ("t" "TODO Entry" entry
+           (file+headline "todo.org" "Capture")
+           (file "~/Dropbox/org/templates/todo.org.txt") :empty-lines 1)
           )
         )
   (global-set-key (kbd "C-c c") 'org-capture)
 #+end_src
 ** Enable org-mode mouse support
 #+begin_src emacs-lisp
-  (require 'org-mouse)
+  (if window-system
+      (require 'org-mouse))
 #+end_src
 ** org-abbrev and skeletons
 #+begin_src emacs-lisp
@@ -546,6 +570,11 @@ Make window management a bit simpler.
     "#+OPTIONS: toc:3 num:nil\n")
   (define-abbrev org-mode-abbrev-table "sheader" "" 'skel-header-block)
 #+end_src
+** Setup Agenda stuff
+#+begin_src emacs-lisp
+  (setq org-refile-targets '((org-agenda-files . (:maxlevel . 6))))
+#+end_src
+
 * Miscellaneous
 ** Quick editing
 Set up registers for frequently accessed files. This allows quick access via =C-x r j= (jump-to-register).
