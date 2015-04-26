@@ -21,6 +21,17 @@ Need to add a few things to the default =PATH= and =exec-path= values.
   (add-to-list 'exec-path "/Users/tlockn/bin")
 #+end_src
 
+Make sure we always use emacsclient as our =EDITOR=.
+#+begin_src emacs-lisp
+  (setenv "EDITOR" "emacsclient")
+#+end_src
+
+Default to cat for paging (so, no paging).
+#+begin_src emacs-lisp
+  (setenv "PAGER" "cat")
+#+end_src
+
+
 ** Clean up the UI
 Turn off things we don't need.
 #+begin_src emacs-lisp
@@ -34,7 +45,7 @@ Turn off things we don't need.
 
 Avoid annoying bits of UI fluff
 #+begin_src emacs-lisp
-    (setq default-major-mode 'text-mode
+    (setq major-mode 'text-mode
           inhibit-splash-screen t
           inhibit-startup-message t
           inhibit-startup-echo-area-message t
@@ -49,7 +60,6 @@ Avoid annoying bits of UI fluff
 Don't display tooltips in a separate frame
 #+begin_src emacs-lisp
   (tooltip-mode -1)
-  (setq tooltip-use-echo-area t)
 #+end_src
 ** A few useful global keybindings
 #+begin_src emacs-lisp
@@ -70,12 +80,17 @@ Don't display tooltips in a separate frame
   (defun nuke-all-buffers ()
     "Kill all buffers, leaving *scratch* only"
     (interactive)
-    (mapcar (lambda (x) (kill-buffer x))
-            (buffer-list))
+    (mapc (lambda (x) (kill-buffer x))
+          (buffer-list))
     (delete-other-windows))
 ;  (global-set-key (kbd "C-x C-S-k") 'nuke-all-buffers)
   
   (global-set-key (kbd "C-c r") 'revert-buffer)
+#+end_src
+
+** Re-map C-x C-b to iBuffer
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-x C-b") 'ibuffer)                
 #+end_src
 
 ** Make the modeline a bit more useful
@@ -103,12 +118,14 @@ Don't display tooltips in a separate frame
 
 ** Toggle fullscreen mode
 #+begin_src emacs-lisp
+  ;; not sure this definition is needed
   (defun toggle-fullscreen ()
     "Toggle full screen"
     (interactive)
     (set-frame-parameter
      nil 'fullscreen
      (when (not (frame-parameter nil 'fullscreen)) 'fullboth)))
+  (global-set-key [f11] 'toggle-frame-fullscreen)
 #+end_src
 
 ** Turn on global syntax highlighting
@@ -133,19 +150,20 @@ Don't display tooltips in a separate frame
   (setq ido-default-file-method 'selected-window
         ido-default-buffer-method 'selected-window
         ido-enable-prefix nil
+        ido-enable-dot-prefix t
         ido-enable-flex-matching t
         ido-create-new-buffer 'always
         ido-use-filename-at-point nil
         ido-max-prospects 10
         ido-everywhere t
-        ido-show-dot-dor-dired nil)
+        ido-show-dot-for-dired nil)
 #+end_src
 
 ** Uniquify
 #+begin_src emacs-lisp
   (require 'uniquify)
   (setq uniquify-buffer-name-style 'post-forward
-        uniquify-seperator ":")
+        uniquify-separator ":")
 #+end_src
 
 ** Enable winner-mode to allow undoing window config changes
@@ -163,7 +181,7 @@ Don't display tooltips in a separate frame
 #+begin_src emacs-lisp
   (desktop-save-mode t)
   (setq desktop-path '("~")
-        desktop-dirname "~"
+;;        desktop-dirname "~"
         desktop-base-file-name ".emacs-desktop")
 #+end_src
 *** Ignore these modes for desktop saves
@@ -272,6 +290,11 @@ Make commenting in the various programming modes (or any mode that's aware of "c
                      (interactive)
                      (switch-to-buffer "*scratch*")))
 #+end_src
+** Make commenting/uncommenting easy
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-x C-/")
+                  'comment-or-uncomment-region)
+#+end_src
 
 * Packages
 ** Set up additional repos
@@ -282,9 +305,9 @@ First set up a handful of additional repos:
   (add-to-list 'package-archives
                '("marmalade" . "http://marmalade-repo.org/packages/") t)
   (add-to-list 'package-archives
-               '("gnu" . "http://elpa.gnu.org/packages") t)
-  (add-to-list 'package-archives
                '("melpa" . "http://melpa.milkbox.net/packages/") t)
+  (add-to-list 'package-archives
+               '("gnu" . "http://elpa.gnu.org/packages") t)
   (setq package-archive-enable-alist '(("melpa" deft magit)))
   (package-initialize)
 #+end_src
@@ -297,21 +320,12 @@ Now, install the =use-package= package to make package management a bit cleaner:
     (package-install 'use-package))
   (require 'use-package)
 #+end_src
-** Install solarized-light theme
-   Default to using solarized light, unless we're running in a shell.
+** Install solarized-dark theme
 #+begin_src emacs-lisp
   (use-package solarized-theme
-    :ensure t)
-;    :config
-;    (progn (if window-system (load-theme 'solarized-light t))))
-#+end_src
-** Install wombat theme
-Only load wombat if we're not running in GUI mode.
-#+begin_src emacs-lisp
-  (use-package color-theme-wombat
     :ensure t
     :config
-    (progn (unless window-system (load-theme 'wombat t))))
+    (progn (load-theme 'solarized-dark t)))
 #+end_src
 ** Install let-alist
 This adds a missing package needed for flycheck
@@ -345,17 +359,30 @@ Need better syntax highlighting.
 
 ** Install Scala-mode2
 #+begin_src emacs-lisp
+  (defun scala-customizations ()
+    (nlinum-mode 1)
+    (setq tab-width 2)
+    (gtags-mode 1))
   (use-package scala-mode2
-    :ensure
+    :ensure t
     :mode (("\\.scala\\'" . scala-mode)
            ("\\.sbt\\'" . scala-mode))
     :config
     (progn
       (add-hook 'scala-mode-hook '(lambda ()
                                     (c-subword-mode t)))
+      (add-hook 'scala-mode-hook 'scala-customizations)
       (setq scala-indent:align-paramters t
             scala-indent:align-forms t)))
 #+end_src
+
+** Install sbt-mode
+#+begin_src emacs-lisp
+;  (use-package sbt-mode
+;    :ensure t
+;    :mode (("\\.sbt\\'" . sbt-mode)))
+#+end_src
+
 ** Install Python-mode
 #+begin_src emacs-lisp
   (use-package python-mode
@@ -479,6 +506,26 @@ Make window management a bit simpler.
     :bind (("M-p" . ace-window)))
   
 #+end_src
+** Install Fish mode
+It's a shell for the 90s, after all...
+#+begin_src emacs-lisp
+  (use-package fish-mode
+    :ensure t)
+#+end_src
+** Faster searches with Ag
+Use Ag (The Silver Searcher) to get fast text searches.
+#+begin_src emacs-lisp
+  (use-package ag
+    :ensure t)
+#+end_src
+** Install magit
+Use magit for Git magic.
+#+begin_src emacs-lisp
+  (use-package git-commit-mode :ensure t)
+  (use-package git-rebase-mode :ensure t)
+  (use-package magit :ensure t)
+#+end_src
+
 * Org-mode configuration  
 ** Org-babel setup
 #+begin_src emacs-lisp
@@ -582,4 +629,19 @@ Set up registers for frequently accessed files. This allows quick access via =C-
   (set-register ?f (cons 'file "~/.config/fish/config.fish"))
   (set-register ?e (cons 'file "~/.emacs.d/readme.org"))
   (set-register ?o (cons 'file (concat org-directory "/notes.org")))
+  (set-register ?t (cons 'file (concat org-directory "/todo.org")))
 #+end_src
+
+** Scala functions
+Quick setup for working on Scala projects
+#+begin_src emacs-lisp
+  (defun start-sbt ()
+    (interactive)
+    (let ((buf-name (format "*sbt [%s]*" default-directory)))
+      (if (get-buffer buf-name)
+          (switch-to-buffer buf-name)
+        (compile "sbt" t)
+        (with-current-buffer "*compilation*" (rename-buffer buf-name)))))
+#+end_src
+
+
