@@ -31,7 +31,6 @@ Default to cat for paging (so, no paging).
   (setenv "PAGER" "cat")
 #+end_src
 
-
 ** Clean up the UI
 Turn off things we don't need.
 #+begin_src emacs-lisp
@@ -295,6 +294,10 @@ Make commenting in the various programming modes (or any mode that's aware of "c
   (global-set-key (kbd "C-x C-/")
                   'comment-or-uncomment-region)
 #+end_src
+** Ignore stuff from grep searches
+#+begin_src emacs-lisp
+  (add-to-list 'grep-find-ignored-directories "target")
+#+end_src
 
 * Packages
 ** Set up additional repos
@@ -357,12 +360,8 @@ Need better syntax highlighting.
     (setq flycheck-display-errors-function 'flycheck-pos-tip-error-messages))
 #+end_src
 
-** Install Scala-mode2
+** Install Scala-mode2 and sbt-mode
 #+begin_src emacs-lisp
-  (defun scala-customizations ()
-    (nlinum-mode 1)
-    (setq tab-width 2)
-    (gtags-mode 1))
   (use-package scala-mode2
     :ensure t
     :mode (("\\.scala\\'" . scala-mode)
@@ -370,10 +369,21 @@ Need better syntax highlighting.
     :config
     (progn
       (add-hook 'scala-mode-hook '(lambda ()
+                                    (nlinum-mode 1)
+                                    (setq tab-width 2)
+                                    (gtags-mode 1)
                                     (c-subword-mode t)))
-      (add-hook 'scala-mode-hook 'scala-customizations)
       (setq scala-indent:align-paramters t
             scala-indent:align-forms t)))
+  (use-package sbt-mode
+    :ensure t
+    :config
+    (progn
+      (add-hook 'sbt-mode-hook '(lambda ()
+                                  (setq compilation-skip-threshold 1)
+                                  (local-set-key (kbd "C-a") 'comint-bol)
+                                  ;; use M-Ret as 'enter' in console
+                                  (local-set-key (kbd "M-RET") 'comint-accumulate)))))
 #+end_src
 
 ** Install sbt-mode
@@ -628,8 +638,9 @@ Set up registers for frequently accessed files. This allows quick access via =C-
 #+begin_src emacs-lisp
   (set-register ?f (cons 'file "~/.config/fish/config.fish"))
   (set-register ?e (cons 'file "~/.emacs.d/readme.org"))
-  (set-register ?o (cons 'file (concat org-directory "/notes.org")))
-  (set-register ?t (cons 'file (concat org-directory "/todo.org")))
+  (set-register ?o (cons 'file "~/Dropbox/org/notes.org"))
+  (set-register ?t (cons 'file "~/Dropbox/org/todo.org"))
+  (set-register ?n (cons 'file "~/Dropbox/org/nike-notes.org"))
 #+end_src
 
 ** Scala functions
