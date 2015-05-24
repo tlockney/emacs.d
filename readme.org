@@ -372,7 +372,14 @@ Need better syntax highlighting.
     :init
     (setq flycheck-display-errors-function 'flycheck-pos-tip-error-messages))
 #+end_src
-
+** Instlall company mode
+#+begin_src emacs-lisp
+  (use-package company :ensure t
+    :config
+    (progn
+      (add-hook 'after-init-hook 'global-company-mode)
+       (global-set-key "C-\t" 'company-complete-common)))
+#+end_src
 ** Install Scala-mode2 and sbt-mode
 #+begin_src emacs-lisp
   (use-package scala-mode2
@@ -480,7 +487,7 @@ Use ido everywhere we possibly can.
     :ensure t
     :init (projectile-global-mode))
 #+end_src
-** Install rust mode
+** Install rust mode and related stuff
 #+begin_src emacs-lisp
   (use-package rust-mode
     :ensure t)
