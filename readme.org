@@ -1,11 +1,7 @@
-#+TITLE My literate Emacs config
-#+AUTHOR Thomas Lockney
-#+EMAIL thomas@lockney.net
-#+OPTIONS: toc:3 num:nil
-#+STYLE: <link rel="stylesheet" type="text/css" href="http://thomasf.github.io/solarized-css/solarized-light.min.css" />
-
 * Set up basic Emacs builtins and such
+
 ** Who am I?
+
 #+begin_src emacs-lisp
   (setq user-full-name "Thomas Lockney"
         user-mail-address "thomas@lockney.net")
@@ -31,6 +27,7 @@ Default to cat for paging (so, no paging).
 #+end_src
 
 ** Clean up the UI
+
 Turn off things we don't need.
 #+begin_src emacs-lisp
   (defun tl:clean-gui ()
@@ -104,6 +101,11 @@ Don't display tooltips in a separate frame
   (global-linum-mode 1)
   (setq linum-format "  %d ")
   (global-hl-line-mode t)
+  (add-hook 'nlinum-mode-hook
+            (lambda ()
+              (setq nlinum--width
+                (+ 1 (length (number-to-string
+                         (count-lines (point-min) (point-max))))))))
 #+end_src
 
 ** Display full path in frame title
@@ -294,13 +296,24 @@ Make commenting in the various programming modes (or any mode that's aware of "c
                   'comment-or-uncomment-region)
 #+end_src
 ** Fonts
+Set up some helpers to make finding the right font easier.
+#+begin_src emacs-lisp
+(require 'cl)
+(defun font-candidate (&rest fonts)
+       "Return existing font with first match"
+       (find-if (lambda (f)
+                (find-font (font-spec :name f))) fonts))
+#+end_src
+
+
 Start with a decent default font.
 #+begin_src emacs-lisp
-(set-face-attribute 'default nil :family "Droid Sans Mono")
+(set-face-attribute 'default nil :font
+                    (font-candidate "Droid Sans Mono" "Droid Sans Mono Slashed"))
 #+end_src
 And load a good symbol font for unicode stuff.
 #+begin_src em
-(set-fontset-font t 'unicode "Symbola" nil 'prepend)
+;(set-fontset-font t 'unicode "Symbola" nil 'prepend)
 #+end_src
 ** Custom settings
 #+begin_src emacs-lisp
@@ -378,7 +391,7 @@ Need better syntax highlighting.
     :config
     (progn
       (add-hook 'after-init-hook 'global-company-mode)
-       (global-set-key "C-\t" 'company-complete-common)))
+       (global-set-key (kbd "C-SPC") 'company-complete-common)))
 #+end_src
 ** Install Scala-mode2 and sbt-mode
 #+begin_src emacs-lisp
@@ -490,7 +503,8 @@ Use ido everywhere we possibly can.
 ** Install rust mode and related stuff
 #+begin_src emacs-lisp
   (use-package rust-mode
-    :ensure t)
+    :ensure t
+    :mode (("\\.rs\\" . rust-mode)))
 #+end_src
 ** Install ggtags
 #+begin_src emacs-lisp
