@@ -1,12 +1,7 @@
-#+TITLE My literate Emacs config
-#+AUTHOR Thomas Lockney
-#+EMAIL thomas@lockney.net
-#+OPTIONS: toc:3 num:nil
-#+STYLE: <link rel="stylesheet" type="text/css" href="http://thomasf.github.io/solarized-css/solarized-light.min.css" />
-
 * Set up basic Emacs builtins and such
 
 ** Who am I?
+
 #+begin_src emacs-lisp
   (setq user-full-name "Thomas Lockney"
         user-mail-address "thomas@lockney.net")
@@ -21,7 +16,18 @@ Need to add a few things to the default =PATH= and =exec-path= values.
   (add-to-list 'exec-path "/Users/tlockn/bin")
 #+end_src
 
+Make sure we always use emacsclient as our =EDITOR=.
+#+begin_src emacs-lisp
+  (setenv "EDITOR" "emacsclient")
+#+end_src
+
+Default to cat for paging (so, no paging).
+#+begin_src emacs-lisp
+  (setenv "PAGER" "cat")
+#+end_src
+
 ** Clean up the UI
+
 Turn off things we don't need.
 #+begin_src emacs-lisp
   (defun tl:clean-gui ()
@@ -34,7 +40,7 @@ Turn off things we don't need.
 
 Avoid annoying bits of UI fluff
 #+begin_src emacs-lisp
-    (setq default-major-mode 'text-mode
+    (setq major-mode 'text-mode
           inhibit-splash-screen t
           inhibit-startup-message t
           inhibit-startup-echo-area-message t
@@ -49,7 +55,6 @@ Avoid annoying bits of UI fluff
 Don't display tooltips in a separate frame
 #+begin_src emacs-lisp
   (tooltip-mode -1)
-  (setq tooltip-use-echo-area t)
 #+end_src
 ** A few useful global keybindings
 #+begin_src emacs-lisp
@@ -70,12 +75,17 @@ Don't display tooltips in a separate frame
   (defun nuke-all-buffers ()
     "Kill all buffers, leaving *scratch* only"
     (interactive)
-    (mapcar (lambda (x) (kill-buffer x))
-            (buffer-list))
+    (mapc (lambda (x) (kill-buffer x))
+          (buffer-list))
     (delete-other-windows))
 ;  (global-set-key (kbd "C-x C-S-k") 'nuke-all-buffers)
   
   (global-set-key (kbd "C-c r") 'revert-buffer)
+#+end_src
+
+** Re-map C-x C-b to iBuffer
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-x C-b") 'ibuffer)                
 #+end_src
 
 ** Make the modeline a bit more useful
@@ -91,6 +101,11 @@ Don't display tooltips in a separate frame
   (global-linum-mode 1)
   (setq linum-format "  %d ")
   (global-hl-line-mode t)
+  (add-hook 'nlinum-mode-hook
+            (lambda ()
+              (setq nlinum--width
+                (+ 1 (length (number-to-string
+                         (count-lines (point-min) (point-max))))))))
 #+end_src
 
 ** Display full path in frame title
@@ -103,12 +118,14 @@ Don't display tooltips in a separate frame
 
 ** Toggle fullscreen mode
 #+begin_src emacs-lisp
+  ;; not sure this definition is needed
   (defun toggle-fullscreen ()
     "Toggle full screen"
     (interactive)
     (set-frame-parameter
      nil 'fullscreen
      (when (not (frame-parameter nil 'fullscreen)) 'fullboth)))
+  (global-set-key [f11] 'toggle-frame-fullscreen)
 #+end_src
 
 ** Turn on global syntax highlighting
@@ -133,19 +150,20 @@ Don't display tooltips in a separate frame
   (setq ido-default-file-method 'selected-window
         ido-default-buffer-method 'selected-window
         ido-enable-prefix nil
+        ido-enable-dot-prefix t
         ido-enable-flex-matching t
         ido-create-new-buffer 'always
         ido-use-filename-at-point nil
         ido-max-prospects 10
         ido-everywhere t
-        ido-show-dot-dor-dired nil)
+        ido-show-dot-for-dired nil)
 #+end_src
 
 ** Uniquify
 #+begin_src emacs-lisp
   (require 'uniquify)
   (setq uniquify-buffer-name-style 'post-forward
-        uniquify-seperator ":")
+        uniquify-separator ":")
 #+end_src
 
 ** Enable winner-mode to allow undoing window config changes
@@ -163,7 +181,7 @@ Don't display tooltips in a separate frame
 #+begin_src emacs-lisp
   (desktop-save-mode t)
   (setq desktop-path '("~")
-        desktop-dirname "~"
+;;        desktop-dirname "~"
         desktop-base-file-name ".emacs-desktop")
 #+end_src
 *** Ignore these modes for desktop saves
@@ -226,10 +244,12 @@ Don't display tooltips in a separate frame
 #+end_src
 ** Mouse support
 #+begin_src emacs-lisp
-  (require 'mouse)
-  (xterm-mouse-mode t)
-  (mouse-wheel-mode t)
+  (unless window-system
+    (require 'mouse)
+    (xterm-mouse-mode t)
+    (mouse-wheel-mode t))
 #+end_src
+
 ** Tramp setup
 #+begin_src emacs-lisp
   (require 'tramp)
@@ -264,10 +284,42 @@ Make commenting in the various programming modes (or any mode that's aware of "c
 #+end_src
 ** Easily open *scratch* buffer back up
 #+begin_src emacs-lisp
-  (global-set-key (kbd "C-x M-z")
+  (global-unset-key (kbd "C-x C-z"))
+  (global-set-key (kbd "C-x C-z")
                   '(lambda ()
                      (interactive)
                      (switch-to-buffer "*scratch*")))
+#+end_src
+** Make commenting/uncommenting easy
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-x C-/")
+                  'comment-or-uncomment-region)
+#+end_src
+** Fonts
+Set up some helpers to make finding the right font easier.
+#+begin_src emacs-lisp
+(require 'cl)
+(defun font-candidate (&rest fonts)
+       "Return existing font with first match"
+       (find-if (lambda (f)
+                (find-font (font-spec :name f))) fonts))
+#+end_src
+
+
+Start with a decent default font.
+#+begin_src emacs-lisp
+(set-face-attribute 'default nil :font
+                    (font-candidate "Droid Sans Mono" "Droid Sans Mono Slashed"))
+#+end_src
+And load a good symbol font for unicode stuff.
+#+begin_src em
+;(set-fontset-font t 'unicode "Symbola" nil 'prepend)
+#+end_src
+** Custom settings
+#+begin_src emacs-lisp
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(when (file-exists-p custom-file)
+  (load custom-file))
 #+end_src
 
 * Packages
@@ -275,13 +327,19 @@ Make commenting in the various programming modes (or any mode that's aware of "c
 First set up a handful of additional repos:
 #+begin_src emacs-lisp
   (load "package")
+  (setq package-check-signature nil)
   (add-to-list 'package-archives
-               '("marmalade" . "http://marmalade-repo.org/packages/"))
+               '("marmalade" . "http://marmalade-repo.org/packages/") t)
   (add-to-list 'package-archives
                '("melpa" . "http://melpa.milkbox.net/packages/") t)
+  ;(add-to-list 'package-archives
+  ;             '("gnu" . "http://elpa.gnu.org/packages") t)
   (setq package-archive-enable-alist '(("melpa" deft magit)))
   (package-initialize)
 #+end_src
+
+#+RESULTS:
+: t
 
 Now, install the =use-package= package to make package management a bit cleaner:
 #+begin_src emacs-lisp
@@ -291,21 +349,12 @@ Now, install the =use-package= package to make package management a bit cleaner:
     (package-install 'use-package))
   (require 'use-package)
 #+end_src
-** Install solarized-light theme
+** Install solarized-dark theme
 #+begin_src emacs-lisp
   (use-package solarized-theme
     :ensure t
     :config
-    (progn (if window-system (load-theme 'solarized-light t))))
-#+end_src
-** Install wombat theme
-#+begin_src emacs-lisp
-  (use-package color-theme-wombat
-    :ensure t
-    :config
-    (progn (unless window-system (load-theme 'wombat t))))
-#+end_src
-  
+    (progn (load-theme 'solarized-dark t)))
 #+end_src
 ** Install let-alist
 This adds a missing package needed for flycheck
@@ -334,22 +383,57 @@ Need better syntax highlighting.
     :ensure t
     :defer t
     :init
-    (setq flycheck-display-errors-function #'flycheck-pos-tip-error-messages))
+    (setq flycheck-display-errors-function 'flycheck-pos-tip-error-messages))
 #+end_src
-
-** Install Scala-mode2
+** Instlall company mode
+#+begin_src emacs-lisp
+  (use-package company :ensure t
+    :config
+    (progn
+      (add-hook 'after-init-hook 'global-company-mode)
+       (global-set-key (kbd "C-SPC") 'company-complete-common)))
+#+end_src
+** Install Scala-mode2 and sbt-mode
 #+begin_src emacs-lisp
   (use-package scala-mode2
-    :ensure
+    :ensure t
     :mode (("\\.scala\\'" . scala-mode)
            ("\\.sbt\\'" . scala-mode))
     :config
     (progn
       (add-hook 'scala-mode-hook '(lambda ()
+                                    (nlinum-mode 1)
+                                    (setq tab-width 2)
+                                    (gtags-mode 1)
                                     (c-subword-mode t)))
       (setq scala-indent:align-paramters t
             scala-indent:align-forms t)))
+  (use-package sbt-mode
+    :ensure t
+    :config
+    (progn
+      (add-hook 'sbt-mode-hook '(lambda ()
+                                  (setq compilation-skip-threshold 1)
+                                  (local-set-key (kbd "C-a") 'comint-bol)
+                                  ;; use M-Ret as 'enter' in console
+                                  (local-set-key (kbd "M-RET") 'comint-accumulate)))))
 #+end_src
+
+** Install sbt-mode
+#+begin_src emacs-lisp
+;  (use-package sbt-mode
+;    :ensure t
+;    :mode (("\\.sbt\\'" . sbt-mode)))
+#+end_src
+
+** Install ENSIME
+#+begin_src emacs-lisp
+  (use-package ensime 
+    :ensure t
+    :init 
+    (add-hook 'scala-mode-hook 'ensime-scala-mode-hook))
+#+end_src
+
 ** Install Python-mode
 #+begin_src emacs-lisp
   (use-package python-mode
@@ -363,7 +447,7 @@ Need better syntax highlighting.
 #+begin_src emacs-lisp
   (use-package ipython
     :ensure t)
-   #+end_src
+#+end_src
 ** Install Deftx
 #+begin_src emacs-lisp
   (use-package deft
@@ -378,13 +462,13 @@ Need better syntax highlighting.
 #+end_src
 ** Install whitespace mode
 #+begin_src emacs-lisp
-  ;; (use-package whitespace
-  ;;   :bind (("C-c t w" . whitespace-mode))
-  ;;   :init
-  ;;   (dolist (hook '(prog-mode-hook text-mode-hook conf-mode-hook))
-  ;;     (add-hook hook #'whitespace-mode))
-  ;;   :config (setq whitespace-line-column nil)
-  ;;   :diminish whitespace-mode)
+  ; (use-package whitespace
+  ;   :bind (("C-c t w" . whitespace-mode))
+  ;   :init
+  ;   (dolist (hook '(prog-mode-hook text-mode-hook conf-mode-hook))
+  ;     (add-hook hook #'whitespace-mode))
+  ;   :config (setq whitespace-line-column nil)
+  ;   :diminish whitespace-mode)
 #+end_src
 ** Install ibuffer-vc
 This mode groups buffers in 
@@ -424,10 +508,11 @@ Use ido everywhere we possibly can.
     :ensure t
     :init (projectile-global-mode))
 #+end_src
-** Install rust mode
+** Install rust mode and related stuff
 #+begin_src emacs-lisp
   (use-package rust-mode
-    :ensure t)
+    :ensure t
+    :mode (("\\.rs\\" . rust-mode)))
 #+end_src
 ** Install ggtags
 #+begin_src emacs-lisp
@@ -447,7 +532,8 @@ Use ido everywhere we possibly can.
     :init (flx-ido-mode 1)
     :config
     (progn
-      (setq ido-enable-flex-matching t
+      (s
+etq ido-enable-flex-matching t
             ido-use-faces nil)))
 #+end_src
 ** Install markdown mode
@@ -473,6 +559,29 @@ Make window management a bit simpler.
     :bind (("M-p" . ace-window)))
   
 #+end_src
+** Install Fish mode
+It's a shell for the 90s, after all...
+#+begin_src emacs-lisp
+  (use-package fish-mode
+    :ensure t)
+#+end_src
+** Faster searches with Ag
+Use Ag (The Silver Searcher) to get fast text searches.
+#+begin_src emacs-lisp
+  (use-package ag
+    :ensure t)
+#+end_src
+** Install magit
+Use magit for Git magic.
+#+begin_src emacs-lisp
+  (use-package git-commit-mode :ensure t)
+  (use-package git-rebase-mode :ensure t)
+  (use-package magit :ensure t
+    :config
+    (progn
+      (setq magit-last-seen-setup-instructions "1.4.0")))
+#+end_src
+
 * Org-mode configuration  
 ** Org-babel setup
 #+begin_src emacs-lisp
@@ -495,12 +604,18 @@ Make window management a bit simpler.
 #+end_src
 
 ** Set folder and file locations
+
 #+begin_src emacs-lisp
   (setq org-directory "~/Dropbox/org"
         org-default-notes-file (concat org-directory "/notes.org")
         org-agenda-files `(,org-directory))
 #+end_src
-   
+
+** Enable IDO completions
+#+begin_src emacs-lisp
+  (setq org-completion-use-ido t)
+#+end_src
+
 ** Make it a bit more readable
 #+begin_src emacs-lisp
   (setq org-hide-emphasis-markers t
@@ -513,16 +628,29 @@ Make window management a bit simpler.
   (require 'org-capture)
   (setq org-capture-templates
         `(
-          ("j" "Journal Entry" entry (file+datetree "journal.org") "** %U - %^{Heading}" :empty-lines 1)
-          ("l" "Logbook entry" entry (file+datetree "logbook-work.org") "** %U - %^{Activity}  :LOG:")
-          ("t" "TODO Entry" entry (file+headline "todo.org" "Capture") (file "~/Dropbox/org/templates/todo.org.txt") :empty-lines-before 1)
+          ("n" "Note" entry
+           (file+headline "notes.org" "Notes")
+           "** %?")
+          ("q" "Quick note" item
+           (file+headline "notes.org" "Quick Notes") "- %^{Note}" :immediate-finish :kill-buffer)
+          ("j" "Journal Entry" entry
+           (file+datetree "journal.org")
+           "** %U - %^{Heading}
+  %?" :empty-lines 1)
+          ("l" "Logbook entry" entry
+           (file+datetree "logbook-work.org")
+           "** %U - %^{Activity}  :LOG:")
+          ("t" "TODO Entry" entry
+           (file+headline "todo.org" "Capture")
+           (file "~/Dropbox/org/templates/todo.org.txt") :empty-lines 1)
           )
         )
   (global-set-key (kbd "C-c c") 'org-capture)
 #+end_src
 ** Enable org-mode mouse support
 #+begin_src emacs-lisp
-  (require 'org-mouse)
+  (if window-system
+      (require 'org-mouse))
 #+end_src
 ** org-abbrev and skeletons
 #+begin_src emacs-lisp
@@ -545,3 +673,32 @@ Make window management a bit simpler.
     "#+OPTIONS: toc:3 num:nil\n")
   (define-abbrev org-mode-abbrev-table "sheader" "" 'skel-header-block)
 #+end_src
+** Setup Agenda stuff
+#+begin_src emacs-lisp
+  (setq org-refile-targets '((org-agenda-files . (:maxlevel . 6))))
+#+end_src
+
+* Miscellaneous
+** Quick editing
+Set up registers for frequently accessed files. This allows quick access via =C-x r j= (jump-to-register).
+#+begin_src emacs-lisp
+  (set-register ?f (cons 'file "~/.config/fish/config.fish"))
+  (set-register ?e (cons 'file "~/.emacs.d/readme.org"))
+  (set-register ?o (cons 'file "~/Dropbox/org/notes.org"))
+  (set-register ?t (cons 'file "~/Dropbox/org/todo.org"))
+  (set-register ?n (cons 'file "~/Dropbox/org/nike-notes.org"))
+#+end_src
+
+** Scala functions
+Quick setup for working on Scala projects
+#+begin_src emacs-lisp
+  (defun start-sbt ()
+    (interactive)
+    (let ((buf-name (format "*sbt [%s]*" default-directory)))
+      (if (get-buffer buf-name)
+          (switch-to-buffer buf-name)
+        (compile "sbt" t)
+        (with-current-buffer "*compilation*" (rename-buffer buf-name)))))
+#+end_src
+
+
