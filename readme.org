@@ -1,5 +1,4 @@
 * Set up basic Emacs builtins and such
-
 ** Who am I?
 
 #+begin_src emacs-lisp
@@ -8,6 +7,11 @@
 #+end_src
 
 ** Environment
+
+Put custom settings somewhere outside of init.el.
+#+begin_src emacs-lisp
+(setq custom-file "~/.emacs.d/custom.el")
+#+end_src
 
 Need to add a few things to the default =PATH= and =exec-path= values.
 #+begin_src emacs-lisp
@@ -362,7 +366,7 @@ This adds a missing package needed for flycheck
   (use-package let-alist
     :ensure t)
 #+end_src
-
+  
 ** Install flycheck
 Need better syntax highlighting.
 #+begin_src emacs-lisp
@@ -445,8 +449,8 @@ Need better syntax highlighting.
 #+end_src
 ** Install IPython support
 #+begin_src emacs-lisp
-  (use-package ipython
-    :ensure t)
+;  (use-package ipython
+;    :ensure t)
 #+end_src
 ** Install Deftx
 #+begin_src emacs-lisp
@@ -512,7 +516,7 @@ Use ido everywhere we possibly can.
 #+begin_src emacs-lisp
   (use-package rust-mode
     :ensure t
-    :mode (("\\.rs\\" . rust-mode)))
+    :mode (("\\.rs\\'" . rust-mode)))
 #+end_src
 ** Install ggtags
 #+begin_src emacs-lisp
