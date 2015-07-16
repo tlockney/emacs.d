@@ -1,7 +1,3 @@
-;(require 'org-install)
-;(org-babel-load-file
-; (expand-file-name "readme.org" user-emacs-directory))
-
 (defvar init-source-org-file (expand-file-name "readme.org" user-emacs-directory)
   "The file that our emacs initialization comes form")
 
@@ -12,7 +8,7 @@
   (if (and (file-exists-p init-source-el-file)
            (time-less-p (nth 5 (file-attributes init-source-org-file)) (nth 5 (file-attributes init-source-el-file))))
       (load-file init-source-el-file)
-    (if (fboundp 'org-babel-load-file) ; ' disqus syntax highlighting is lame
+    (if (fboundp 'org-babel-load-file)
         (org-babel-load-file init-source-org-file)
       (message "Function not found: org-babel-load-file")
       (load-file init-source-el-file)))
