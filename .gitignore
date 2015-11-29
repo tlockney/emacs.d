@@ -8,3 +8,9 @@ readme.el
 readme.html
 projectile-bookmarks.eld
 local/
+recentf
+ensime/
+auto-save-list/
+.emacs-desktop
+network-security.data
+
