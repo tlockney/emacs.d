@@ -5,8 +5,9 @@
 ;; You may delete these explanatory comments.
 (package-initialize)
 
-(require 'org-install)
-(require 'ob-tangle)
+;(require 'org-install)
+;(require 'ob-tangle)
 
 (org-babel-load-file (concat user-emacs-directory "readme.org"))
 
+(put 'narrow-to-region 'disabled nil)

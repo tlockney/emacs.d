@@ -1,4 +1,8 @@
+#+TITLE: Emacs Configuration
+#+AUTHOR: Thomas Lockney
+#+EMAIL: thomas@lockney.net
 * Set up basic Emacs builtins and such
+
 ** Who am I?
 
 #+begin_src emacs-lisp
@@ -29,7 +33,6 @@ Default to cat for paging (so, no paging).
 #+begin_src emacs-lisp
   (setenv "PAGER" "cat")
 #+end_src
-
 ** Clean up the UI
 
 Turn off things we don't need.
@@ -64,7 +67,6 @@ Don't display tooltips in a separate frame
 #+begin_src emacs-lisp
   (setq mac-command-modifier 'super)
 #+end_src
-
 ** Make buffer navigation simple
 #+begin_src emacs-lisp
   (global-set-key (kbd "M-]") 'next-buffer)
@@ -86,19 +88,16 @@ Don't display tooltips in a separate frame
   
   (global-set-key (kbd "C-c r") 'revert-buffer)
 #+end_src
-
 ** Re-map C-x C-b to iBuffer
 #+begin_src emacs-lisp
   (global-set-key (kbd "C-x C-b") 'ibuffer)                
 #+end_src
-
 ** Make the modeline a bit more useful
 #+begin_src emacs-lisp
   (display-time-mode t)
   (setq column-number-mode t
         size-indication-mode t)
 #+end_src
-
 ** Turn on line number and highlight the current line
 #+begin_src emacs-lisp
   (require 'linum)
@@ -111,7 +110,6 @@ Don't display tooltips in a separate frame
                 (+ 1 (length (number-to-string
                          (count-lines (point-min) (point-max))))))))
 #+end_src
-
 ** Display full path in frame title
 #+begin_src emacs-lisp
   (setq frame-title-format
@@ -119,7 +117,6 @@ Don't display tooltips in a separate frame
                      (abbreviate-file-name (buffer-file-name))
                    "%b"))))
 #+end_src
-
 ** Toggle fullscreen mode
 #+begin_src emacs-lisp
   ;; not sure this definition is needed
@@ -131,12 +128,10 @@ Don't display tooltips in a separate frame
      (when (not (frame-parameter nil 'fullscreen)) 'fullboth)))
   (global-set-key [f11] 'toggle-frame-fullscreen)
 #+end_src
-
 ** Turn on global syntax highlighting
 #+begin_src emacs-lisp
   (global-font-lock-mode t)
 #+end_src
-
 ** Show recently opened files
 #+begin_src emacs-lisp
   (require 'recentf)
@@ -145,7 +140,6 @@ Don't display tooltips in a separate frame
   (savehist-mode t)
   (setq history-length 1000)
 #+end_src
-
 ** Ido-mode
 #+begin_src emacs-lisp
   (require 'ido)
@@ -162,32 +156,34 @@ Don't display tooltips in a separate frame
         ido-everywhere t
         ido-show-dot-for-dired nil)
 #+end_src
-
 ** Uniquify
 #+begin_src emacs-lisp
   (require 'uniquify)
   (setq uniquify-buffer-name-style 'post-forward
         uniquify-separator ":")
 #+end_src
-
 ** Enable winner-mode to allow undoing window config changes
 #+begin_src emacs-lisp
   (winner-mode t)
 #+end_src
-
 ** Server
 #+begin_src emacs-lisp
   (require 'server)
   (unless (server-running-p) (server-start))
 #+end_src
-
-** Enable desktop mode
+** Enable desktop mode and save previous position
 #+begin_src emacs-lisp
   (desktop-save-mode t)
   (setq desktop-path '("~")
-;;        desktop-dirname "~"
         desktop-base-file-name ".emacs-desktop")
+
+  (require 'saveplace)
+  (setq-default save-place t)
 #+end_src
+
+#+RESULTS:
+: .emacs-desktop
+
 *** Ignore these modes for desktop saves
 #+begin_src emacs-lisp
   (add-to-list 'desktop-modes-not-to-save 'dired-mode)
@@ -229,12 +225,10 @@ Don't display tooltips in a separate frame
     (setq-default save-place t)
     (setq save-place-file (expand-file-name ".places" user-emacs-directory))
 #+end_src
-
 ** Clean up old buffers
 #+begin_src emacs-lisp
   (require 'midnight)
 #+end_src
-
 ** Clean up the handling of backups a bit
 #+begin_src emacs-lisp
     (setq version-control nil
@@ -253,7 +247,6 @@ Don't display tooltips in a separate frame
     (xterm-mouse-mode t)
     (mouse-wheel-mode t))
 #+end_src
-
 ** Tramp setup
 #+begin_src emacs-lisp
   (require 'tramp)
@@ -271,7 +264,6 @@ Don't display tooltips in a separate frame
       (setq shell-command-switch "-lc")))
 #+end_src
 ** Enable easy commenting of lines
-
 Make commenting in the various programming modes (or any mode that's aware of "comments") as simple as possible.
 #+begin_src emacs-lisp
   (defun comment-or-uncomment-region-or-line ()
@@ -300,24 +292,12 @@ Make commenting in the various programming modes (or any mode that's aware of "c
                   'comment-or-uncomment-region)
 #+end_src
 ** Fonts
-Set up some helpers to make finding the right font easier.
-#+begin_src emacs-lisp
-(require 'cl)
-(defun font-candidate (&rest fonts)
-       "Return existing font with first match"
-       (find-if (lambda (f)
-                (find-font (font-spec :name f))) fonts))
-#+end_src
-
-
 Start with a decent default font.
 #+begin_src emacs-lisp
-(set-face-attribute 'default nil :font
-                    (font-candidate "Droid Sans Mono" "Droid Sans Mono Slashed"))
-#+end_src
-And load a good symbol font for unicode stuff.
-#+begin_src em
-;(set-fontset-font t 'unicode "Symbola" nil 'prepend)
+  (setq tl/font-family "Source Code Pro")
+  (set-frame-font tl/font-family)
+  (set-face-attribute 'default nil :font tl/font-family :height 120)
+  (set-face-font 'default tl/font-family)
 #+end_src
 ** Custom settings
 #+begin_src emacs-lisp
@@ -325,8 +305,8 @@ And load a good symbol font for unicode stuff.
 (when (file-exists-p custom-file)
   (load custom-file))
 #+end_src
-
 * Packages
+
 ** Set up additional repos
 First set up a handful of additional repos:
 #+begin_src emacs-lisp
@@ -350,6 +330,8 @@ Now, install the =use-package= package to make package management a bit cleaner:
     (package-install 'use-package))
   (require 'use-package)
 #+end_src
+
+And make 
 ** Install solarized-dark theme
 #+begin_src emacs-lisp
   (use-package solarized-theme
@@ -369,6 +351,7 @@ Need better syntax highlighting.
 #+begin_src emacs-lisp
   (use-package flycheck
     :ensure t
+    :defer t
     :bind (("C-c l e" . list-flycheck-errors)
            ("C-c T f" . flycheck-mode))
     :init (global-flycheck-mode)
@@ -386,9 +369,10 @@ Need better syntax highlighting.
     :init
     (setq flycheck-display-errors-function 'flycheck-pos-tip-error-messages))
 #+end_src
-** Instlall company mode
+** Install company mode
 #+begin_src emacs-lisp
   (use-package company :ensure t
+    :defer t
     :config
     (progn
       (add-hook 'after-init-hook 'global-company-mode)
@@ -398,8 +382,9 @@ Need better syntax highlighting.
 #+begin_src emacs-lisp
   (use-package scala-mode2
     :ensure t
+    :defer t
     :mode (("\\.scala\\'" . scala-mode)
-           ("\\.sbt\\'" . scala-mode))
+           ("\\.sbt\\'" . sbt-mode))
     :config
     (progn
       (add-hook 'scala-mode-hook '(lambda ()
@@ -411,6 +396,7 @@ Need better syntax highlighting.
             scala-indent:align-forms t)))
   (use-package sbt-mode
     :ensure t
+    :defer t
     :config
     (progn
       (add-hook 'sbt-mode-hook '(lambda ()
@@ -419,26 +405,20 @@ Need better syntax highlighting.
                                   ;; use M-Ret as 'enter' in console
                                   (local-set-key (kbd "M-RET") 'comint-accumulate)))))
 #+end_src
-
-** Install sbt-mode
-#+begin_src emacs-lisp
-;  (use-package sbt-mode
-;    :ensure t
-;    :mode (("\\.sbt\\'" . sbt-mode)))
-#+end_src
-
+   
 ** Install ENSIME
 #+begin_src emacs-lisp
   (use-package ensime 
     :ensure t
+    :defer t
     :init 
     (add-hook 'scala-mode-hook 'ensime-scala-mode-hook))
 #+end_src
-
 ** Install Python-mode
 #+begin_src emacs-lisp
   (use-package python-mode
     :ensure t
+    :defer t
     :config
     (progn
       (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
@@ -453,12 +433,13 @@ Need better syntax highlighting.
 #+begin_src emacs-lisp
   (use-package deft
     :ensure t
+    :defer t
     :config
     (progn
-      (setq deft-directory "~/Dropbox/org")
-      (setq deft-extension "org")
-      (setq deft-text-mode 'org-mode)
-      (setq deft-use-filename-as-title t)
+      (setq deft-directory "~/Dropbox/org"
+            deft-extension "org"
+            deft-text-mode 'org-mode
+            deft-use-filename-as-title t)
       (global-set-key [f8] 'deft)))
 #+end_src
 ** Install whitespace mode
@@ -475,61 +456,70 @@ Need better syntax highlighting.
 This mode groups buffers in 
 #+begin_src emacs-lisp
   (use-package ibuffer-vc
-    :ensure t)
+    :ensure t
+    :defer t)
 #+end_src
 ** Install ido-vertical-mode
 This helps to make ido expansions a bit more useful.
 #+begin_src emacs-lisp
   (use-package ido-vertical-mode
     :ensure t
+    :defer t
     :config (ido-vertical-mode 1))
 #+end_src
 ** Install ido-ubiquitous
 Use ido everywhere we possibly can.
 #+begin_src emacs-lisp
   (use-package ido-ubiquitous
-    :ensure t)
+    :ensure t
+    :defer t)
 #+end_src
 ** Install smex
 #+begin_src emacs-lisp
-    (use-package smex
-      :ensure t
-      :bind (("C-t" . smex)
-             ("C-," . smex-describe-function)))
+  (use-package smex
+    :ensure t
+    :defer t
+    :bind (("C-t" . smex)
+           ("C-," . smex-describe-function)))
 #+end_src
 ** Install browse-kill-ring
 #+begin_src emacs-lisp
   (use-package browse-kill-ring
     :ensure t
+    :defer t
     :bind (("M-y" . browse-kill-ring)))
 #+end_src
 ** Install projectile
 #+begin_src emacs-lisp
   (use-package projectile
     :ensure t
+    :defer t
     :init (projectile-global-mode))
 #+end_src
 ** Install rust mode and related stuff
 #+begin_src emacs-lisp
   (use-package rust-mode
     :ensure t
+    :defer t
     :mode (("\\.rs\\'" . rust-mode)))
 #+end_src
 ** Install ggtags
 #+begin_src emacs-lisp
-    (use-package ggtags
-      :ensure t
-      :config
-      (progn
-        (add-hook 'prog-mode-hook
-                  '(lambda ()
-                     (when (derived-mode-p 'rust-mode)
-                       (ggtags-mode 1))))))
+  (use-package ggtags
+    :ensure t
+    :defer t
+    :config
+    (progn
+      (add-hook 'prog-mode-hook
+                '(lambda ()
+                   (when (derived-mode-p 'rust-mode)
+                     (ggtags-mode 1))))))
 #+end_src
 ** Install flx and flx-ido
 #+begin_src emacs-lisp
   (use-package flx-ido
     :ensure t
+    :defer t
     :init (flx-ido-mode 1)
     :config
     (progn
@@ -540,6 +530,7 @@ Use ido everywhere we possibly can.
 #+begin_src emacs-lisp
   (use-package markdown-mode
     :ensure t
+    :defer t
     :mode (("\\.markdown\\'" . gfm-mode)
            ("\\.md\\'" . gfm-mode)
            ("\\.mo\\'" . gfm-mode) ; use github flavored markdown for .mo files
@@ -549,6 +540,7 @@ Use ido everywhere we possibly can.
 #+begin_src emacs-lisp
   (use-package powerline
     :ensure t
+    :defer t
     :init (powerline-default-theme))
 #+end_src
 ** Install ace-window
@@ -556,38 +548,108 @@ Make window management a bit simpler.
 #+begin_src emacs-lisp
   (use-package ace-window
     :ensure t
+    :defer t
     :bind (("M-p" . ace-window)))
-  
+
 #+end_src
 ** Install Fish mode
 It's a shell for the 90s, after all...
 #+begin_src emacs-lisp
   (use-package fish-mode
-    :ensure t)
+    :ensure t
+    :defer t)
 #+end_src
 ** Faster searches with Ag
 Use Ag (The Silver Searcher) to get fast text searches.
 #+begin_src emacs-lisp
   (use-package ag
-    :ensure t)
+    :ensure t
+    :defer t)
 #+end_src
 ** Install magit
 Use magit for Git magic.
 #+begin_src emacs-lisp
-  (use-package magit :ensure t)
+  (use-package magit
+    :ensure t
+    :defer t)
 #+end_src
 ** Install Yaml mode
 #+begin_src emacs-lisp
-  (use-package yaml-mode :ensure t)
+  (use-package yaml-mode
+    :ensure t
+    :defer t)
 #+end_src
-   
-* Org-mode configuration  
+* Org-mode configuration 
+** Make sure we're using the latest org-mode
+Install the package using _use-package_.
+#+begin_src emacs-lisp
+  (use-package org
+    :ensure t)
+#+end_src
+** Customize the org-mode buffers to make them a bit more readable
+
+This is largely borrowed from [[https://github.com/howardabrams/dot-files/blob/master/emacs-client.org][Howard Abrams']] Emacs config.
+
+#+BEGIN_SRC emacs-lisp
+
+  (defface org-block-begin-line
+    '((t (:underline "#A7A6AA" :foreground "#008ED1" :background "#002E41")))
+    "Face used for the line delimiting the begin of source blocks.")
+  (defface org-block-background
+    '((t (:background "#111111")))
+    "Face used for the source block background.")
+  (defface org-block-end-line
+    '((t (:overline "#A7A6AA" :foreground "#008ED1" :background "#002E41")))
+    "Face used for the line delimiting the end of source blocks.")
+  (deftheme tl/org-theme "My org-mode sub theme")
+
+  (custom-set-faces
+   '(org-block-begin-line
+     ((t (:foreground "#008ED1" :background "#002E41"))))
+   '(org-block-background
+     ((t (:background "#111111"))))
+   '(org-block-end-line
+     ((t (:foreground "#008ED1" :background "#002E41")))))
+   (let* ((sans-font (cond ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+                           ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+                           ((x-list-fonts "Verdana")         '(:font "Verdana"))
+                           ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+                           (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
+          (base-font-color  (face-foreground 'default nil 'default))
+          (background-color (face-background 'default nil 'default))
+          (primary-color    (face-foreground 'mode-line nil))
+          (secondary-color  (face-background 'secondary-selection nil 'region))
+          (headline        `(:inherit default :weight bold :foreground ,base-font-color)))
+     (custom-theme-set-faces 'tl/org-theme
+                             `(org-agenda-structure ((t (:inherit default ,@sans-font :height 2.0 :underline nil))))
+                             `(org-level-8 ((t (,@headline ,@sans-font))))
+                             `(org-level-7 ((t (,@headline ,@sans-font))))
+                             `(org-level-6 ((t (,@headline ,@sans-font))))
+                             `(org-level-5 ((t (,@headline ,@sans-font))))
+                             `(org-level-4 ((t (,@headline ,@sans-font :height 1.1))))
+                             `(org-level-3 ((t (,@headline ,@sans-font :height 1.25))))
+                             `(org-level-2 ((t (,@headline ,@sans-font :height 1.5))))
+                             `(org-level-1 ((t (,@headline ,@sans-font :height 1.75))))
+                             `(org-document-title ((t (,@headline ,@sans-font :height 1.5 :underline nil))))))
+
+#+END_SRC
+** Make the elipsis nicer to look at
+#+begin_src emacs-lisp
+(setq org-ellipsis " ⤵")
+#+end_src
+** Install org-bullets for UTF-8 org-mode bullet support   
+#+begin_src emacs-lisp
+  (use-package org-bullets
+    :ensure t
+    :defer t
+    :init
+    (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+#+end_src
 ** Org-babel setup
 #+begin_src emacs-lisp
   (org-babel-do-load-languages
    'org-babel-load-languages
-   '(
-     (awk . t)
+   '((awk . t)
      (C . t)
      (emacs-lisp . t)
      (java . t)
@@ -600,8 +662,10 @@ Use magit for Git magic.
      (sql . t)
      ))
   (setq org-src-fontify-natively t)
+  (setq org-confirm-babel-evaluate nil)
+  (add-to-list 'org-babel-default-header-args:sh
+               '(:shebang . "#!/usr/bin/env bash"))
 #+end_src
-
 ** Set folder and file locations
 
 #+begin_src emacs-lisp
@@ -609,19 +673,16 @@ Use magit for Git magic.
         org-default-notes-file (concat org-directory "/notes.org")
         org-agenda-files `(,org-directory))
 #+end_src
-
 ** Enable IDO completions
 #+begin_src emacs-lisp
   (setq org-completion-use-ido t)
 #+end_src
-
 ** Make it a bit more readable
 #+begin_src emacs-lisp
   (setq org-hide-emphasis-markers t
         org-hide-leading-stars t
         org-edit-timestamps-down-means-later t)
 #+end_src
-
 ** Set up Capture
 #+begin_src emacs-lisp
   (require 'org-capture)
@@ -676,12 +737,24 @@ Use magit for Git magic.
 #+begin_src emacs-lisp
   (setq org-refile-targets '((org-agenda-files . (:maxlevel . 6))))
 #+end_src
+** Some basic improvements
+Set maximum indentation for description lists
+#+begin_src emacs-lisp
+  (setq org-list-description-max-indent 5)
+#+end_src
 
+Prevent demoting heading also shifting text inside sections
+#+begin_src emacs-lisp
+  (setq org-adapt-indentation nil)
+#+end_src
 * Miscellaneous
+
 ** Quick editing
+
+
 Set up registers for frequently accessed files. This allows quick access via =C-x r j= (jump-to-register).
 #+begin_src emacs-lisp
-  (set-register ?f (cons 'file "~/.config/fish/config.fish"))
+  (set-register ?f (cons 'file "~/.config/omf/init.fish"))
   (set-register ?e (cons 'file "~/.emacs.d/readme.org"))
   (set-register ?o (cons 'file "~/Dropbox/org/notes.org"))
   (set-register ?t (cons 'file "~/Dropbox/org/todo.org"))
@@ -690,6 +763,7 @@ Set up registers for frequently accessed files. This allows quick access via =C-
 
 ** Scala functions
 Quick setup for working on Scala projects
+
 #+begin_src emacs-lisp
   (defun start-sbt ()
     (interactive)
@@ -702,6 +776,7 @@ Quick setup for working on Scala projects
 
 ** Dired to Ansi-term
 Open an ansi-term buffer in the current directory.
+
 #+begin_src emacs-lisp
   (defun tml-terminal ()
     "Switch to terminal. Launch if nonexistent."
@@ -724,7 +799,5 @@ Open an ansi-term buffer in the current directory.
          (format "cd '%s'\n" current-dir)))
       (setq default-directory current-dir)))
   
-  (define-key dired-mode-map (kbd "`") 'tml-dired-open-term)
- #+end_src
-
-
+;  (define-key dired-mode-map (kbd "`") 'tml-dired-open-term)
+#+end_src
